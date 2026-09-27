@@ -3,6 +3,7 @@ from sqlalchemy.orm import validates
 db = SQLAlchemy()
 from sqlalchemy.ext.associationproxy import association_proxy
 from datetime import date
+from marshmallow import Schema, fields, validate
 
 # Define Models here
 
@@ -37,6 +38,14 @@ class Exercise(db.Model):
 
     def __repr__(self):
         return f"<Exercise {self.id}, {self.name}, {self.category}, {self.equipment_needed}>"
+
+class ExerciseSchema(Schema):
+    id = fields.Int(dump_only=True)
+    name = fields.String(required=True,)
+    category = fields.String(required=True,)
+    equipment_needed = fields.Bool(required=True,)
+
+    workout_exercises = fields.Nested(lambda: WorkoutExercisesSchema(exclude=("exercise",)), many=True,)
 
     
 class Workout(db.Model):
@@ -75,6 +84,15 @@ class Workout(db.Model):
     def __repr__(self):
         return f"<Workout {self.id}, {self.date}, {self.duration_minutes}, {self.notes}>"
 
+class WorkoutSchema(Schema):
+    id = fields.Int(dump_only=True)
+    date = fields.Date(required=True,)
+    duration_minutes = fields.Int(required=True, validate=validate.Range(min=1))
+    notes = fields.String(required=True,)
+
+    workout_exercises = fields.Nested(lambda: WorkoutExercisesSchema(exclude=("workout",)), many=True,)
+
+
 class WorkoutExercises(db.Model):
     __tablename__ = "workout_exercises"
 
@@ -111,3 +129,13 @@ class WorkoutExercises(db.Model):
 
     def __repr__(self):
         return f"<Workout Exercises {self.id}, {self.reps}, {self.sets}, {self.duration_seconds}>"
+
+
+class WorkoutExercisesSchema(Schema):
+    id = fields.Int(dump_only=True)
+    reps = fields.Int(allow_none=True, validate=validate.Range(min=1))
+    sets = fields.Int(required=True, validate=validate.Range(min=1))
+    duration_seconds = fields.Int(allow_none=True, required=True,)
+
+    workout = fields.Nested(lambda: WorkoutSchema(exclude=("workout_exercises",)))
+    exercise = fields.Nested(lambda: ExerciseSchema(exclude=("workout_exercises",)))
