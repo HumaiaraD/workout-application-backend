@@ -45,7 +45,7 @@ class ExerciseSchema(Schema):
     category = fields.String(required=True,)
     equipment_needed = fields.Bool(required=True,)
 
-    workout_exercises = fields.Nested(lambda: WorkoutExercisesSchema(exclude=("exercise",)), many=True,)
+    workout_exercises = fields.Nested(lambda: WorkoutExercisesSchema(exclude=("exercise",)), many=True, dump_only=True)
 
     
 class Workout(db.Model):
@@ -90,7 +90,7 @@ class WorkoutSchema(Schema):
     duration_minutes = fields.Int(required=True, validate=validate.Range(min=1))
     notes = fields.String(required=True,)
 
-    workout_exercises = fields.Nested(lambda: WorkoutExercisesSchema(exclude=("workout",)), many=True,)
+    workout_exercises = fields.Nested(lambda: WorkoutExercisesSchema(exclude=("workout",)), many=True, dump_only=True)
 
 
 class WorkoutExercises(db.Model):
@@ -133,9 +133,9 @@ class WorkoutExercises(db.Model):
 
 class WorkoutExercisesSchema(Schema):
     id = fields.Int(dump_only=True)
-    reps = fields.Int(allow_none=True, validate=validate.Range(min=1))
+    reps = fields.Int(validate=validate.Range(min=1))
     sets = fields.Int(required=True, validate=validate.Range(min=1))
     duration_seconds = fields.Int(allow_none=True, validate=validate.Range(min=1))
 
-    workout = fields.Nested(lambda: WorkoutSchema(exclude=("workout_exercises",)))
-    exercise = fields.Nested(lambda: ExerciseSchema(exclude=("workout_exercises",)))
+    workout = fields.Nested(lambda: WorkoutSchema(exclude=("workout_exercises",)), dump_only=True)
+    exercise = fields.Nested(lambda: ExerciseSchema(exclude=("workout_exercises",)), dump_only=True)

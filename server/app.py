@@ -38,7 +38,7 @@ def get_workout(id):
 
 @app.route("/workouts", methods=["POST"])
 def create_workout():
-    data = WorkoutSchema().load(request.get_json())
+    data = WorkoutSchema().load(request.get_json()) or {}
 
     w = Workout(**data)
     db.session.add(w)
@@ -81,7 +81,7 @@ def get_exercise(id):
 
 @app.route("/exercises", methods=["POST"])
 def create_exercise():
-    data = ExerciseSchema().load(request.get_json())
+    data = ExerciseSchema().load(request.get_json()) or {}
 
     e = Exercise(**data)
     db.session.add(e)
@@ -108,7 +108,7 @@ def add_workout_exercise(exercise_id, workout_id):
     if e is None or w is None:
         return make_response({"error": "None of the exercise or workout exists."}, 404)
 
-    data = WorkoutExercisesSchema().load(request.get_json())
+    data = WorkoutExercisesSchema().load(request.get_json()) or {}
     add_on = WorkoutExercises(
         workout=w,
         exercise=e,
