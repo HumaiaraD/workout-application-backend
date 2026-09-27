@@ -1,5 +1,6 @@
 from flask import Flask, make_response, request
 from flask_migrate import Migrate
+from marshmallow import ValidationError
 
 from models import *
 
@@ -20,58 +21,32 @@ def index():
 @app.route("/workouts", methods=["GET"])
 def get_all_workouts():
     workouts = Workout.query.all()
-    body = []
-    for w in workouts:
-        body.append({
-            "id": w.id,
-            "date": w.date.isoformat(),
-            "duration_minutes": w.duration_minutes,
-            "notes": w.notes
-        })
+    body = WorkoutSchema(many=True).dump(workouts)
+       
     return make_response(body, 200)
 
 @app.route("/workouts/<int:id>", methods=["GET"])
 def get_workout(id):
     workout = Workout.query.filter(Workout.id == id).first()
-    if workout:
-        body = {
-            "id": workout.id,
-            "date": workout.date.isoformat(),
-            "duration_minutes": workout.duration_minutes,
-            "notes": workout.notes,
-            "exercises": [{
-                "id": workout_exercise.exercise.id,
-                "name": workout_exercise.exercise.name,
-                "category": workout_exercise.exercise.category,
-                "sets": workout_exercise.sets,
-                "reps": workout_exercise.reps,
-                "duration_seconds": workout_exercise.duration_seconds,
-            } for workout_exercise in workout.workout_exercises]
-        }
+    if workout is None:
+            return make_response({"error": "Workout not found."}, 404)
+        
+    body = WorkoutSchema().dump(workout)
+    return make_response(body, 200)
 
-        return make_response(body, 200)
-    else:
-        return make_response({"error": "Workout not found."}, 404)
+
 
 @app.route("/workouts", methods=["POST"])
 def create_workout():
-    data = request.get_json()
+    data = WorkoutSchema().load(request.get_json())
 
-    w = Workout(
-        date=date.fromisoformat(data["date"]),
-        duration_minutes=data["duration_minutes"],
-        notes=data["notes"]
-    )
-
+    w = Workout(**data)
     db.session.add(w)
     db.session.commit()
 
-    return make_response({
-        "id": w.id,
-        "date": w.date.isoformat(),
-        "duration_minutes": w.duration_minutes,
-        "notes": w.notes,
-    }, 201)
+    return make_response(WorkoutSchema().dump(w), 201)
+
+
 
 @app.route("/workouts/<int:id>", methods=["DELETE"])
 def delete_workout(id):
@@ -84,61 +59,35 @@ def delete_workout(id):
     db.session.commit()
     return "", 204
 
+
+
 @app.route("/exercises", methods=["GET"])
 def get_all_exercises():
-    exercise = Exercise.query.all()
-    body = []
-    for e in exercise:
-        body.append({
-            "id": e.id,
-            "name": e.name,
-            "category": e.category,
-            "equipment_needed": e.equipment_needed,
-        })
+    exercises = Exercise.query.all()
+    
+    body = ExerciseSchema(many=True).dump(exercises)
     return make_response(body, 200)
 
 
 @app.route("/exercises/<int:id>", methods=["GET"])
 def get_exercise(id):
     exercise = Exercise.query.filter(Exercise.id == id).first()
-    if exercise:
-        body = {
-            "id": exercise.id,
-            "name": exercise.name,
-            "category": exercise.category,
-            "equipment_needed": exercise.equipment_needed,
-            "workouts": [{
-                "id": workout_exercise.workout.id,
-                "date": workout_exercise.workout.date.isoformat(),
-                "duration_minutes": workout_exercise.workout.duration_minutes,
-                "sets": workout_exercise.sets,
-                "reps": workout_exercise.reps,
-                "duration_seconds": workout_exercise.duration_seconds,
-            } for workout_exercise in exercise.workout_exercises]
-        }
-
-        return make_response(body, 200)
-    else:
+    if exercise is None:
         return make_response({"error": "Exercise not found."}, 404)
+            
+    body = ExerciseSchema().dump(exercise)
+    return make_response(body, 200)
+
 
 @app.route("/exercises", methods=["POST"])
 def create_exercise():
-    data = request.get_json()
+    data = ExerciseSchema().load(request.get_json())
 
-    e = Exercise(
-        name=data["name"],
-        category=data["category"],
-        equipment_needed=data["equipment_needed"]      
-    )
+    e = Exercise(**data)
     db.session.add(e)
     db.session.commit()
-    
-    return make_response({
-        "id": e.id,
-        "name": e.name,
-        "category": e.category,
-        "equipment_needed": e.equipment_needed,
-    }, 201)
+
+    return make_response(ExerciseSchema().dump(e), 201)
 
 @app.route("/exercises/<int:id>", methods=["DELETE"])
 def delete_exercise(id):
@@ -159,7 +108,7 @@ def add_workout_exercise(exercise_id, workout_id):
     if e is None or w is None:
         return make_response({"error": "None of the exercise or workout exists."}, 404)
 
-    data = request.get_json()
+    data = WorkoutExercisesSchema().load(request.get_json())
     add_on = WorkoutExercises(
         workout=w,
         exercise=e,
@@ -170,14 +119,7 @@ def add_workout_exercise(exercise_id, workout_id):
     db.session.add(add_on)
     db.session.commit()
 
-    return make_response({
-        "id": add_on.id,
-        "workout_id": add_on.workout_id,
-        "exercise_id": add_on.exercise_id,
-        "sets": add_on.sets,
-        "reps": add_on.reps,
-        "duration_seconds": add_on.duration_seconds,
-    }, 201)
+    return make_response(WorkoutExercisesSchema().dump(add_on), 201)
 
 
 

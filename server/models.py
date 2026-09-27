@@ -135,7 +135,7 @@ class WorkoutExercisesSchema(Schema):
     id = fields.Int(dump_only=True)
     reps = fields.Int(allow_none=True, validate=validate.Range(min=1))
     sets = fields.Int(required=True, validate=validate.Range(min=1))
-    duration_seconds = fields.Int(allow_none=True, required=True,)
+    duration_seconds = fields.Int(allow_none=True, validate=validate.Range(min=1))
 
     workout = fields.Nested(lambda: WorkoutSchema(exclude=("workout_exercises",)))
     exercise = fields.Nested(lambda: ExerciseSchema(exclude=("workout_exercises",)))
